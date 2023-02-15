@@ -9,6 +9,7 @@ import { NFT_CONTRACT_ABI, NFT_CONTRACT_ADDRESS, DAO_CONTRACT_ADDRESS, DAO_CONTR
 export default function Home() {
 
   const [walletConnected, setWalletConnected] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("");
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [treasuryBalance, setTreasuryBalance] = useState("0");
@@ -26,13 +27,13 @@ export default function Home() {
    */
   const getDAOOwner = async () => {
     try {
-      const signer = await getProviderOrSigner(); //true?
-      const daoContract = getDaoContractInstance(signer);
+      const signer = await getProviderOrSigner(true); //true?
+      const daoContract = await getDaoContractInstance(signer);
 
-      const owner = await daoContract.owner();
+      const _owner = await daoContract.owner();
       const userAddress = await signer.getAddress();
 
-      if (owner.toLowerCase() === userAddress.toLowerCase()) {
+      if (_owner.toLowerCase() === userAddress.toLowerCase()) {
         setIsOwner(true);
       }
     } catch (error) {
@@ -48,7 +49,7 @@ export default function Home() {
     try {
       const signer = await getProviderOrSigner(true);
       const daoContract = await getDaoContractInstance(signer);
-      
+
       const tx = await daoContract.withdrawEther();
       setLoading(true);
       await tx.wait();
@@ -57,7 +58,7 @@ export default function Home() {
 
     } catch (error) {
       console.error(error);
-      window.alert(err.reason);
+      window.alert(error.reason);
     }
   }
 
@@ -65,7 +66,7 @@ export default function Home() {
   const getDAOTreasuryBalance = async () => {
     try {
       const provider = await getProviderOrSigner();
-      
+
       const balance = await provider.getBalance(DAO_CONTRACT_ADDRESS);
       setTreasuryBalance(balance.toString());
 
@@ -81,20 +82,20 @@ export default function Home() {
       const daoContract = await getDaoContractInstance(provider);
 
       const daoNumProposals = await daoContract.numProposals();
-      setTreasuryBalance(daoNumProposals.toString());
-
+      setNumProposals(daoNumProposals.toString());
     } catch (error) {
       console.error(error);
     }
   }
- 
+
   // getUserNFTBalance Reads the balance of the user's CryptoDevs NFTs and sets the `nftBalance` state variable
   const getUserNFTBalance = async () => {
     try {
-      const provider = await getProviderOrSigner();
-      const nftContract = await getCryptodevsNFTContractInstance(provider);
-      
-      const balance = await nftContract.balanceOf(provider.getAddress());
+      const signer = await getProviderOrSigner(true);
+      const nftContract = await getCryptodevsNFTContractInstance(signer);
+
+      const signer_address = await signer.getAddress();
+      const balance = await nftContract.balanceOf(signer_address);
       setNftBalance(parseInt(balance.toString()));
 
     } catch (error) {
@@ -103,22 +104,22 @@ export default function Home() {
   }
 
   // createProposal Calls the `createProposal` function in the contract, using the tokenId from `fakeNftTokenId`
-const createProposal = async () => {
-  try {
-    const signer = await getProviderOrSigner(true);
-    const daoContract = await getDaoContractInstance(signer);
-    
-    const tx = await daoContract.createProposal(fakeNftTokenId);
-    setLoading(true);
-    await tx.wait();
-    await getNumProposalsInDAO();
-    setLoading(false);
+  const createProposal = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      const daoContract = await getDaoContractInstance(signer);
 
-  } catch (error) {
-    console.error(error);
-    window.alert(err.reason);
+      const tx = await daoContract.createProposal(fakeNftTokenId);
+      setLoading(true);
+      await tx.wait();
+      await getNumProposalsInDAO();
+      setLoading(false);
+
+    } catch (error) {
+      console.error(error);
+      window.alert(error.reason);
+    }
   }
-}
   // fetchProposalById is Helper function to fetch and parse one proposal from the DAO contract
   // Given the Proposal ID
   // and converts the returned data into a Javascript object with values we can use
@@ -142,17 +143,14 @@ const createProposal = async () => {
       console.error(error);
     }
   }
-  
+
 
   // fetchAllProposals Runs a loop `numProposals` times to fetch all proposals in the DAO
   // and sets the `proposals` state variable
   const fetchAllProposals = async () => {
     try {
-      const provider = await getProviderOrSigner();
-      const daoContract = await getDaoContractInstance(provider);
-
       const proposals = [];
-      for (let i = 0; i < numProposals; i++) {
+      for (let i = 0; i < parseInt(numProposals); i++) {
         const proposal = await fetchProposalById(i);
         proposals.push(proposal);
       }
@@ -171,40 +169,40 @@ const createProposal = async () => {
     try {
       const signer = await getProviderOrSigner(true);
       const daoContract = await getDaoContractInstance(signer);
-      
+
       let vote = _vote === "YAY" ? 0 : 1;
       const tx = await daoContract.voteOnProposal(proposalId, vote);
       setLoading(true);
       await tx.wait();
       setLoading(false);
       await fetchAllProposals();
-  
+
     } catch (error) {
       console.error(error);
-      window.alert(err.reason);
+      window.alert(error.reason);
     }
-  } 
+  }
 
 
   // executeProposal Calls the `executeProposal` function in the contract, using
   // the passed proposal ID
-  const executeProposal = async (proposalId, ) => {
+  const executeProposal = async (proposalId) => {
     try {
       const signer = await getProviderOrSigner(true);
       const daoContract = await getDaoContractInstance(signer);
-      
-      const tx = await daoContract.executeProposal(proposalId, );
+
+      const tx = await daoContract.executeProposal(proposalId);
       setLoading(true);
       await tx.wait();
       setLoading(false);
       await fetchAllProposals();
       getDAOTreasuryBalance();
-  
+
     } catch (error) {
       console.error(error);
-      window.alert(err.reason);
+      window.alert(error.reason);
     }
-  } 
+  }
 
   // getDaoContractInstance is Helper function to return a DAO Contract instance
   // given a Provider/Signer
@@ -215,7 +213,7 @@ const createProposal = async () => {
       providerOrSigner
     );
   }
-  
+
 
   // getCryptodevsNFTContractInstance is Helper function to return a CryptoDevs NFT Contract instance
   // given a Provider/Signer
@@ -290,14 +288,144 @@ const createProposal = async () => {
     }
   }
 
+  function renderLoading(loadingMessage="") {
+    return (
+      <div className={styles.description}> Loading...{loadingMessage}... </div>
+    );
+  }
+
 
   // renderTabs is Render the contents of the appropriate tab based on `selectedTab`
+  function renderTabs() {
+    if (selectedTab === "Create Proposal") {
+      return renderCreateProposalTab();
+    } else if (selectedTab === "View Proposals") {
+      return renderViewProposalsTab();
+    }
+    return null;
+  }
 
 
   // renderCreateProposalTab Renders the 'Create Proposal' tab content
-
+  function renderCreateProposalTab() {
+    if (loading) {
+      return renderLoading("Creating Proposal");
+    } else if (nftBalance === 0) {
+      return (
+        <div className={styles.description}>
+          You do not own any CryptoDevs NFTs.
+          <br />
+          <b>You cannot create or vote on proposals</b>
+        </div>
+      );
+    } else {
+      return (
+        <div className={styles.container}>
+          <label> Fake NFT token ID to Purchase: </label>
+          <input
+            placeholder='0'
+            type="number"
+            onChange={(e) => setFakeNftTokenId(e.target.value)}
+          />
+          <button className={styles.button2} onClick={createProposal}>
+            Create
+          </button>
+        </div>
+      );
+    }
+  }
 
   // renderViewProposalsTab Renders the 'View Proposals' tab content
+  function renderViewProposalsTab() {
+    if (loading) {
+      return renderLoading("Loading Proposals");
+    } else if (proposals.length === 0) {
+      return (
+        <div className={styles.description}>
+          No proposals have been created
+        </div>
+
+      );
+    } else {
+      return (
+        <div>
+          kek
+          {
+            proposals.slice(0).reverse().map((p, index) => (
+              <div key={index} className={styles.proposalCard}>
+                <p>Proposal ID: {p.proposalId}</p>
+                <p>Fake NFT to Purchase: {p.nftTokenId}</p>
+                <p>Deadline: {p.deadline.toLocaleString()}</p>
+                <p>Yay Votes: {p.yayVotes}</p>
+                <p>Nay Votes: {p.nayVotes}</p>
+                <p>Executed? {p.executed.toString()}</p>
+                {
+                  p.deadline.getTime() > Date.now() && !p.executed ? (
+                    <div className={styles.flex}>
+                      <button className={styles.button2} onClick={() => voteOnProposal(p.proposalId, "YAY")}>
+                        Vote YAY
+                      </button>
+                      <button className={styles.button2} onClick={() => voteOnProposal(p.proposalId, "NAY")}>
+                        Vote NAY
+                      </button>
+                    </div>
+                  ) : p.deadline.getTime() < Date.now() && !p.executed ? (
+                    <div>
+                      <button className={styles.button2} onClick={() => executeProposal(p.proposalId)}>
+                        Execute 
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.description}>Proposal Executed</div>
+                  )
+                }
+
+              </div>
+            ))
+          }
+        </div>
+      )
+    }
+
+  }
+
+  function renderConnectedPage() {
+    if (walletConnected) {
+      return (
+        <div>
+          <div className={styles.description}>
+            Your Crypto NFT Balance: {nftBalance}
+            <br />
+            Treasury Blance: {ethers.utils.formatEther(treasuryBalance)} ETH
+            <br />
+            Total Number of Proposals: {numProposals}
+          </div>
+          <div className={styles.flex}>
+            <button className={styles.button} onClick={() => setSelectedTab("Create Proposal")}>
+              Create Proposal
+            </button>
+            <button className={styles.button} onClick={() => setSelectedTab("View Proposals")}>
+              View Proposals
+            </button>
+          </div>
+          <div> {renderTabs()}</div>
+          <div>
+            {isOwner ? (
+              <div>
+                {loading ? renderLoading() :
+                  <button className={styles.button} onClick={withdrawDAOEther}>
+                    Withdraw DAO ETH
+                  </button>
+                }
+
+              </div>
+
+            ) : ("")}
+          </div>
+        </div>
+      )
+    }
+  }
 
   return (
     <div>
@@ -311,17 +439,25 @@ const createProposal = async () => {
 
       <div className={styles.main}>
         <div>
-          <h1 className={styles.title}>
-            Welcome to Crypro Devs DAO!
-          </h1>
           <div>
+            <h1 className={styles.title}>
+              Welcome to Crypro Devs!
+            </h1>
+            <div className={styles.description}>
+              Welcome to the DAO!
+            </div>
+            <div>
+              {renderButton()}
+            </div>
+            {renderConnectedPage()}
 
           </div>
 
-          {renderButton()}
-
-
         </div>
+        <div>
+          <img className={styles.image} src='/0.svg' />
+        </div>
+
       </div>
     </div>
   )
