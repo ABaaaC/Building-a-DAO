@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useEffect, useRef, useState } from 'react'
 import styles from '../styles/Home.module.css'
-import Web3Modal from "web3Modal"
+import Web3Modal from 'web3modal'
 import { ethers } from 'ethers';
 
 import { NFT_CONTRACT_ABI, NFT_CONTRACT_ADDRESS, DAO_CONTRACT_ADDRESS, DAO_CONTRACT_ABI } from '../constants';
