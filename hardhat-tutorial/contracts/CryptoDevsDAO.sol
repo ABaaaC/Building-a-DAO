@@ -67,7 +67,7 @@ contract CryptoDevsDAO is Ownable {
 
     function createProposal(uint256 _nftTokenId) external nftHolderOnly returns (uint256) {
         require(nftMarketplace.available(_nftTokenId), "NFT_NOT_FOR_SALE");
-        Proposal storage proposal = proposals[_nftTokenId];
+        Proposal storage proposal = proposals[numProposals];
         proposal.nftTokenId = _nftTokenId;
         proposal.deadline = block.timestamp + 5 minutes;
         numProposals++;
